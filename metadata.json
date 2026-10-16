@@ -1,0 +1,6 @@
+{
+  "name": "ScriptureVault - Canonical & Bible Verse Explorer",
+  "description": "High-performance scripture search and study engine with in-memory indexing across canonical texts, book/chapter/verse browsing, and Cloud Run deployment bundle.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
