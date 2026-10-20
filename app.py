@@ -105,7 +105,6 @@ class ScriptureDatabase:
         # Find candidate verse indices using inverted index
         if match_mode == "exact":
             phrase = query.strip().lower()
-            # Candidate verses must contain all tokens
             candidate_lists = [self.inverted_index.get(t, []) for t in tokens if t in self.inverted_index]
             if len(candidate_lists) < len(tokens):
                 return []
@@ -116,7 +115,6 @@ class ScriptureDatabase:
                 if not candidates:
                     break
 
-            # Exact phrase check
             results = []
             pattern = re.compile(r"\b" + re.escape(phrase) + r"\b", re.IGNORECASE)
             for idx in sorted(candidates):
@@ -146,7 +144,6 @@ class ScriptureDatabase:
                 if not candidates:
                     break
 
-        # Filter by scope and return
         results = []
         for idx in sorted(candidates):
             item = self.verses[idx]
@@ -171,10 +168,29 @@ db = ScriptureDatabase()
 db.load_data()
 
 
+def extract_event_value(e: Any, fallback_element: Any = None) -> Any:
+    """Helper to safely extract event value across all NiceGUI versions."""
+    if e is None and fallback_element is not None:
+        return getattr(fallback_element, "value", None)
+    if isinstance(e, (str, int, float)):
+        return e
+    if hasattr(e, "value"):
+        return e.value
+    if hasattr(e, "args"):
+        args = e.args
+        if isinstance(args, list) and len(args) > 0:
+            return args[0]
+        if isinstance(args, (str, int, float)):
+            return args
+    if fallback_element is not None:
+        return getattr(fallback_element, "value", None)
+    return None
+
+
 @ui.page("/")
 def main_page():
     ui.colors(primary="#2563eb", secondary="#64748b", accent="#d97706")
-    
+
     # State tracking
     state = {
         "volume": "Old Testament",
@@ -250,26 +266,32 @@ def main_page():
                                     ui.label(v["verse_short_title"]).classes("text-xs text-slate-400 font-mono")
                                 ui.button(icon="content_copy", on_click=lambda text=v["scripture_text"], ref=v["verse_title"]: copy_verse(text, ref)).props("flat dense round size=sm text-color=slate-400")
 
-            def update_volume(e):
-                state["volume"] = e.value
-                books = db.books_by_volume.get(e.value, [])
+            def update_volume(e=None):
+                val = extract_event_value(e, vol_select)
+                if not val:
+                    return
+                state["volume"] = str(val)
+                books = db.books_by_volume.get(state["volume"], [])
                 book_select.options = books
                 state["book"] = books[0] if books else ""
                 book_select.value = state["book"]
                 update_book(None)
 
-            def update_book(e):
-                if e:
-                    state["book"] = e.value
+            def update_book(e=None):
+                val = extract_event_value(e, book_select)
+                if val:
+                    state["book"] = str(val)
                 chaps = db.chapters_by_book.get(state["book"], [1])
                 chapter_select.options = [str(c) for c in chaps]
                 state["chapter"] = chaps[0] if chaps else 1
                 chapter_select.value = str(state["chapter"])
                 refresh_verses()
 
-            def update_chapter(e):
-                state["chapter"] = int(e.value)
-                refresh_verses()
+            def update_chapter(e=None):
+                val = extract_event_value(e, chapter_select)
+                if val:
+                    state["chapter"] = int(val)
+                    refresh_verses()
 
             def prev_chapter():
                 chaps = db.chapters_by_book.get(state["book"], [1])
@@ -291,9 +313,9 @@ def main_page():
                 ui.run_javascript(f'navigator.clipboard.writeText("{ref} - {text}")')
                 ui.notify(f"Copied {ref} to clipboard!", type="positive")
 
-            vol_select.on("update:model-value", update_volume)
-            book_select.on("update:model-value", update_book)
-            chapter_select.on("update:model-value", update_chapter)
+            vol_select.on_value_change(update_volume)
+            book_select.on_value_change(update_book)
+            chapter_select.on_value_change(update_chapter)
             refresh_verses()
 
         # PANEL 2: SEARCH ENGINE

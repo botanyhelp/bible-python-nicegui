@@ -138,6 +138,23 @@ class ScriptureDatabase:
 db = ScriptureDatabase()
 db.load_data()
 
+def extract_event_value(e, fallback_element=None):
+    if e is None and fallback_element is not None:
+        return getattr(fallback_element, "value", None)
+    if isinstance(e, (str, int, float)):
+        return e
+    if hasattr(e, "value"):
+        return e.value
+    if hasattr(e, "args"):
+        args = e.args
+        if isinstance(args, list) and len(args) > 0:
+            return args[0]
+        if isinstance(args, (str, int, float)):
+            return args
+    if fallback_element is not None:
+        return getattr(fallback_element, "value", None)
+    return None
+
 @ui.page("/")
 def main_page():
     ui.colors(primary="#2563eb", secondary="#64748b", accent="#d97706")
