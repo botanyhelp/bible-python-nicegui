@@ -17,6 +17,7 @@ logger = logging.getLogger("scripture_vault")
 
 DATA_URL = "https://github.com/beandog/lds-scriptures/raw/refs/heads/master/json/lds-scriptures-json.txt"
 LOCAL_CACHE_PATH = os.path.join(os.path.dirname(__file__), "public", "data", "lds-scriptures.json")
+SECRET = os.environ.get('NICEGUI_STORAGE_SECRET', 'scripturevault_development_secret_key')
 
 
 class ScriptureDatabase:
@@ -394,6 +395,8 @@ if __name__ in {"__main__", "__mp_main__"}:
         host="0.0.0.0",
         port=port,
         title="ScriptureVault - Bible & Canon Search",
+        storage_secret=SECRET,
         favicon="📖",
         reload=False
     )
+
